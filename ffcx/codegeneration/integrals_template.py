@@ -20,12 +20,26 @@ void tabulate_tensor_{factory_name}({scalar_type}* restrict A,
 {tabulate_tensor}
 }}
 
+void custom_tabulate_tensor_{factory_name}({scalar_type}* restrict A,
+                                    const {scalar_type}* restrict w,
+                                    const {scalar_type}* restrict c,
+                                    const {geom_type}* restrict coordinate_dofs,
+                                    const int* restrict entity_local_index,
+                                    const uint8_t* restrict quadrature_permutation,      
+                                    const int* restrict num_points,
+                                    const {scalar_type}* restrict points,
+                                    const {scalar_type}* restrict weights)
+{{
+{custom_tabulate_tensor}
+}}
+
 {enabled_coefficients_init}
 
 ufcx_integral {factory_name} =
 {{
   .enabled_coefficients = {enabled_coefficients},
   .tabulate_tensor_{np_scalar_type} = tabulate_tensor_{factory_name},
+  .custom_tabulate_tensor_{np_scalar_type} = custom_tabulate_tensor_{factory_name},
   .needs_facet_permutations = {needs_facet_permutations},
   .coordinate_element = {coordinate_element},
 }};

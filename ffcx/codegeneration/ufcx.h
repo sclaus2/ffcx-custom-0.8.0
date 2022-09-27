@@ -313,6 +313,52 @@ extern "C"
       const int* restrict entity_local_index,
       const uint8_t* restrict quadrature_permutation);
 
+  /// @brief  Tabulate tensor for custom integrals with quadrature rule given at run-time
+  typedef void(ufcx_custom_tabulate_tensor_float32)(
+      float* restrict A, const float* restrict w,
+      const float* restrict c, const float* restrict coordinate_dofs,
+      const int* restrict entity_local_index,
+      const uint8_t* restrict quadrature_permutation,
+      const int* restrict num_points,
+      const float* restrict points,
+      const float* restrict weights);
+
+  typedef void(ufcx_custom_tabulate_tensor_float64)(
+      double* restrict A, const double* restrict w,
+      const double* restrict c, const double* restrict coordinate_dofs,
+      const int* restrict entity_local_index,
+      const uint8_t* restrict quadrature_permutation,      
+      const int* restrict num_points,
+      const double* restrict points,
+      const double* restrict weights);
+
+  typedef void(ufcx_custom_tabulate_tensor_longdouble)(
+      long double* restrict A, const long double* restrict w,
+      const long double* restrict c, const long double* restrict coordinate_dofs,
+      const int* restrict entity_local_index,
+      const uint8_t* restrict quadrature_permutation,      
+      const int* restrict num_points,
+      const long double* restrict points,
+      const long double* restrict weights);
+
+  typedef void(ufcx_custom_tabulate_tensor_complex64)(
+      float _Complex* restrict A, const float _Complex* restrict w,
+      const float _Complex* restrict c, const float* restrict coordinate_dofs,
+      const int* restrict entity_local_index,
+      const uint8_t* restrict quadrature_permutation,      
+      const int* restrict num_points,
+      const float _Complex* restrict points,
+      const float _Complex* restrict weights);
+
+  typedef void(ufcx_custom_tabulate_tensor_complex128)(
+      double _Complex* restrict A, const double _Complex* restrict w,
+      const double _Complex* restrict c, const double* restrict coordinate_dofs,
+      const int* restrict entity_local_index,
+      const uint8_t* restrict quadrature_permutation,      
+      const int* restrict num_points,
+      const double _Complex* restrict points,
+      const double _Complex* restrict weights);
+
   typedef struct ufcx_integral
   {
     const bool* enabled_coefficients;
@@ -321,6 +367,13 @@ extern "C"
     ufcx_tabulate_tensor_longdouble* tabulate_tensor_longdouble;
     ufcx_tabulate_tensor_complex64* tabulate_tensor_complex64;
     ufcx_tabulate_tensor_complex128* tabulate_tensor_complex128;
+
+    ufcx_custom_tabulate_tensor_float32* custom_tabulate_tensor_float32;
+    ufcx_custom_tabulate_tensor_float64* custom_tabulate_tensor_float64;
+    ufcx_custom_tabulate_tensor_longdouble* custom_tabulate_tensor_longdouble;
+    ufcx_custom_tabulate_tensor_complex64* custom_tabulate_tensor_complex64;
+    ufcx_custom_tabulate_tensor_complex128* custom_tabulate_tensor_complex128;
+
     bool needs_facet_permutations;
 
     /// Get the coordinate element associated with the geometry of the mesh.
@@ -341,6 +394,13 @@ extern "C"
     ufcx_tabulate_tensor_longdouble* tabulate_tensor_longdouble;
     ufcx_tabulate_tensor_complex64* tabulate_tensor_complex64;
     ufcx_tabulate_tensor_complex128* tabulate_tensor_complex128;
+
+    //Evaluate expression into tensor A with quadrature rule given at run-time
+    ufcx_custom_tabulate_tensor_float32* custom_tabulate_tensor_float32;
+    ufcx_custom_tabulate_tensor_float64* custom_tabulate_tensor_float64;
+    ufcx_custom_tabulate_tensor_longdouble* custom_tabulate_tensor_longdouble;
+    ufcx_custom_tabulate_tensor_complex64* custom_tabulate_tensor_complex64;
+    ufcx_custom_tabulate_tensor_complex128* custom_tabulate_tensor_complex128;
 
     /// Number of coefficients
     int num_coefficients;

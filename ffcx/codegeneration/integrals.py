@@ -66,7 +66,13 @@ def generator(ir, options):
         code["enabled_coefficients"] = L.Null()
 
     code["additional_includes_set"] = set()  # FIXME: Get this out of code[]
-    code["tabulate_tensor"] = body
+
+    if ir.integral_type in ufl.custom_integral_types:
+        code["tabulate_tensor"] = "" 
+        code["custom_tabulate_tensor"] = body
+    else: 
+        code["tabulate_tensor"] = body 
+        code["custom_tabulate_tensor"] = ""
 
     if options["tabulate_tensor_void"]:
         code["tabulate_tensor"] = ""
@@ -76,6 +82,7 @@ def generator(ir, options):
         enabled_coefficients=code["enabled_coefficients"],
         enabled_coefficients_init=code["enabled_coefficients_init"],
         tabulate_tensor=code["tabulate_tensor"],
+        custom_tabulate_tensor=code["custom_tabulate_tensor"],
         needs_facet_permutations="true" if ir.needs_facet_permutations else "false",
         scalar_type=options["scalar_type"],
         geom_type=scalar_to_value_type(options["scalar_type"]),
@@ -213,6 +220,7 @@ class IntegralGenerator(object):
             # Generate code to integrate reusable blocks of final
             # element tensor
             pre_definitions, preparts, quadparts = self.generate_quadrature_loop(rule)
+
             all_preparts += preparts
             all_quadparts += quadparts
             all_predefinitions.update(pre_definitions)
@@ -242,6 +250,7 @@ class IntegralGenerator(object):
 
         # Loop over quadrature rules
         for quadrature_rule, integrand in self.ir.integrand.items():
+            
             num_points = quadrature_rule.weights.shape[0]
 
             # Generate quadrature weights array
@@ -291,21 +300,40 @@ class IntegralGenerator(object):
         tables = self.ir.unique_tables
         table_types = self.ir.unique_table_types
         padlen = self.ir.options["padlen"]
+
+        table_names = sorted(tables)
+  
         if self.ir.integral_type in ufl.custom_integral_types:
-            # Define only piecewise tables
-            table_names = [name for name in sorted(tables) if table_types[name] in piecewise_ttypes]
+            for name in table_names:
+                table = tables[name]
+                
+                #Replace number of points in array with symbolic number of points that is passed to 
+                #tabulate tensor at run-time
+                brackets = ''.join("[%d]" % table.shape[0])
+                brackets += ''.join("[%d]" % table.shape[1])
+                brackets += ''.join("[%s]" % self.backend.symbols.custom_num_points())
+                brackets += ''.join("[%d]" % table.shape[3])
+
+                #Declare array of the type e.g. double FE#_C#[1][1][num_points][3];
+                #to be filled at run-time using basix tabulate call 
+                decl = float_type + " " + name + brackets + ";"
+
+                parts+= [L.VerbatimStatement(decl)]
+            
+            # Add leading comment if there are any tables
+            parts = L.commented_code_list(parts, [
+                "Array for basis evaluations and basis derivative evaluations",
+                "FE* dimensions: [permutation][entities][points][dofs]"])
         else:
             # Define all tables
-            table_names = sorted(tables)
+            for name in table_names:
+                table = tables[name]
+                parts += self.declare_table(name, table, padlen, float_type)
 
-        for name in table_names:
-            table = tables[name]
-            parts += self.declare_table(name, table, padlen, float_type)
-
-        # Add leading comment if there are any tables
-        parts = L.commented_code_list(parts, [
-            "Precomputed values of basis functions and precomputations",
-            "FE* dimensions: [permutation][entities][points][dofs]"])
+            # Add leading comment if there are any tables
+            parts = L.commented_code_list(parts, [
+                "Precomputed values of basis functions and precomputations",
+                "FE* dimensions: [permutation][entities][points][dofs]"])
         return parts
 
     def declare_table(self, name, table, padlen, value_type: str):
@@ -316,6 +344,7 @@ class IntegralGenerator(object):
 
         """
         L = self.backend.language
+
         return [L.ArrayDecl(f"static const {value_type}", name, table.shape, table, padlen=padlen)]
 
     def generate_quadrature_loop(self, quadrature_rule: QuadratureRule):
@@ -338,6 +367,9 @@ class IntegralGenerator(object):
             quadparts = []
         else:
             num_points = quadrature_rule.points.shape[0]
+            #Override num_points with string for custom integral
+            if self.ir.integral_type in ufl.custom_integral_types:
+                num_points = self.backend.symbols.custom_num_points()
             iq = self.backend.symbols.quadrature_loop_index()
             quadparts = [L.ForRange(iq, 0, num_points, body=body)]
 

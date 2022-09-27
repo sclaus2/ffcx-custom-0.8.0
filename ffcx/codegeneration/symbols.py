@@ -108,11 +108,15 @@ class FFCXBackendSymbols(object):
 
     def custom_weights_table(self):
         """Table for chunk of custom quadrature weights (including cell measure scaling)."""
-        return self.S("weights_chunk")
+        return self.S("weights")
 
     def custom_points_table(self):
         """Table for chunk of custom quadrature points (physical coordinates)."""
         return self.S("points_chunk")
+
+    def custom_num_points(self):
+        """Number of quadrature points for custom integrals with run-time quadrature rule."""
+        return self.S("num_points")
 
     def weights_table(self, quadrature_rule):
         """Table of quadrature weights."""

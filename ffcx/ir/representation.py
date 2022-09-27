@@ -398,6 +398,23 @@ def _compute_integral_ir(form_data, form_index, element_numbers, integral_names,
             if scheme == "custom":
                 points = md["quadrature_points"]
                 weights = md["quadrature_weights"]
+            
+            elif integral_type in ufl.custom_integral_types:
+                #FIXME: Use dummy points and weights, weights and points should be provided 
+                # at run time instead, use negative weight to indicate that it should be provided later 
+                #Check if this option can be passed via metadata scheme=="run_time"
+                if form_data.geometric_dimension == 3:
+                    points, weights = (numpy.array([[0.0, 0.0,0.0], [1.0, 0.0,0.0]]),
+                                       numpy.array([-1.0,-1.0 ]))
+                elif form_data.geometric_dimension == 2:
+                    # points, weights = (numpy.array([[0.0, 0.0]]),
+                    #                     numpy.array([-1.0 ]))
+                    points, weights = (numpy.array([[0.0, 0.0], [1.0, 0.0]]),
+                                       numpy.array([-1.0,-1.0 ]))
+                elif form_data.geometric_dimension == 1:
+                    points, weights = (numpy.array([[0.0], [1.0]]),
+                                       numpy.array([-1.0,-1.0 ]))
+
             elif scheme == "vertex":
                 # FIXME: Could this come from basix?
 
