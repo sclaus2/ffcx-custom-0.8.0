@@ -507,8 +507,8 @@ def create_element_deriv_order(element_tables):
 
 def build_element_tables(quadrature_rule, cell, integral_type, entitytype,
                          modified_terminals):
-    # Collect information on each named basis function evaluation for which 
-    # basix_tabulate needs to be called. 
+    # Collect information on each named basis function evaluation for which
+    # basix_tabulate needs to be called in tabulate_tensor at run-time.
     analysis = {}
     for mt in modified_terminals:
         res = get_modified_terminal_element(mt)
