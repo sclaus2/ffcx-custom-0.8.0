@@ -44,6 +44,20 @@ class UniqueTableReferenceT(typing.NamedTuple):
     is_uniform: bool
     is_permuted: bool
 
+# This is used for custom integrals in which the basix tables will be filled at run-time 
+# Each name 
+class ElementTables(typing.NamedTuple):
+    name: str 
+    element: ufl.FiniteElementBase
+    element_counter: int
+    averaged: str
+    local_derivatives: typing.Tuple[int]
+    basix_index: int
+    deriv_order: int
+    fc: int
+    gdim: int 
+    shape: typing.Tuple[int]
+
 
 def equal_tables(a, b, rtol=default_rtol, atol=default_atol):
     a = numpy.asarray(a)
@@ -139,6 +153,7 @@ def get_ffcx_table_values(points, cell, integral_type, element, avg, entitytype,
     assert len(component_tables) == num_entities
     num_points, num_dofs = component_tables[0].shape
     shape = (1, num_entities, num_points, num_dofs)
+
     res = numpy.zeros(shape)
     for entity in range(num_entities):
         res[:, entity, :, :] = component_tables[entity]
@@ -232,7 +247,6 @@ def get_modified_terminal_element(mt) -> typing.Optional[ModifiedTerminalElement
 
     return ModifiedTerminalElement(element, mt.averaged, local_derivatives, fc)
 
-
 def permute_quadrature_interval(points, reflections=0):
     output = points.copy()
     for p in output:
@@ -317,7 +331,6 @@ def build_optimized_tables(quadrature_rule, cell, integral_type, entitytype,
         # only reusing them if they match numerically.
         # It should be possible to reuse the cached tables by name, but
         # the dofmap offset may differ due to restriction.
-
         tdim = cell.topological_dimension()
 
         if integral_type == "interior_facet":
@@ -402,9 +415,8 @@ def build_optimized_tables(quadrature_rule, cell, integral_type, entitytype,
         mt_tables[mt] = UniqueTableReferenceT(
             name, tbl, offset, block_size, tabletype,
             tabletype in piecewise_ttypes, tabletype in uniform_ttypes, is_permuted)
-
+        
     return mt_tables
-
 
 def is_zeros_table(table, rtol=default_rtol, atol=default_atol):
     return (numpy.product(table.shape) == 0
@@ -471,3 +483,85 @@ def analyse_table_type(table, rtol=default_rtol, atol=default_atol):
             # Varying over points and entities
             ttype = "varying"
     return ttype
+
+def create_element_deriv_order(element_tables):
+    element_deriv_order = {}
+    deriv_order = 0
+
+    #Go through table and determine highest derivative needed from element
+    for e in element_tables:
+        element = e.element
+        deriv_order = e.deriv_order
+        if element in element_deriv_order.keys():
+            deriv_order_exist = element_deriv_order[element]
+            if(deriv_order>deriv_order_exist):
+                element_deriv_order[element]=deriv_order
+        else: 
+            element_deriv_order[element] = deriv_order
+
+    return element_deriv_order
+
+def build_element_tables(quadrature_rule, cell, integral_type, entitytype,
+                           modified_terminals):
+    """Build the element tables needed for a list of modified terminals.
+
+    Input:
+      entitytype - str
+      modified_terminals - ordered sequence of unique modified terminals
+      FIXME: Document
+
+    Output:
+      mt_element_tables 
+    """
+    # Add to element tables
+    analysis = {}
+    for mt in modified_terminals:
+        res = get_modified_terminal_element(mt)
+        if res:
+            analysis[mt] = res
+
+    # Build element numbering using topological ordering so subelements
+    # get priority
+    all_elements = [res[0] for res in analysis.values()]
+    unique_elements = ufl.algorithms.sort_elements(
+        ufl.algorithms.analysis.extract_sub_elements(all_elements))
+    element_numbers = {element: i for i, element in enumerate(unique_elements)}
+    element_tables = []
+
+    for mt in modified_terminals:
+        res = analysis.get(mt)
+        if not res:
+            continue
+        element, avg, local_derivatives, flat_component = res
+
+        deriv_order = sum(local_derivatives)
+        basix_idx = basix_index(local_derivatives)
+
+        # Tabulate table of basis functions and derivatives in points for each entity
+        tdim = cell.topological_dimension()
+        gdim = cell.geometric_dimension()
+
+        element = convert_element(element)
+        tbl = element.tabulate(deriv_order,quadrature_rule.points)
+
+        #for entity in range(num_entities):
+        #    tbl = component_element.tabulate(deriv_order, entity_points)
+        # Generate table and store table name with modified terminal
+
+        # Build name for this particular table
+        element_number = element_numbers[element]
+
+        name = generate_psi_table_name(quadrature_rule, element_number, avg, entitytype,
+                                       local_derivatives, flat_component)
+        
+        element = convert_element(element)
+       
+        # tables is just np.arrays, mt_tables hold metadata too
+        element_tables.append(ElementTables(
+            name, element, element_number, avg, local_derivatives, basix_idx, deriv_order, flat_component, gdim, tbl.shape))
+    
+    #Create dictionary which gives the highest derivative needed for 
+    element_deriv_order = create_element_deriv_order(element_tables)
+
+    return element_tables, element_deriv_order
+

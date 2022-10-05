@@ -122,6 +122,8 @@ class IntegralIR(typing.NamedTuple):
     enabled_coefficients: typing.List[bool]
     element_dimensions: typing.Dict[ufl.FiniteElementBase, int]
     element_ids: typing.Dict[ufl.FiniteElementBase, int]
+    element_names: typing.Dict[ufl.FiniteElementBase, str]
+    element_deriv_order: typing.Dict[ufl.FiniteElementBase, int]
     tensor_shape: typing.List[int]
     coefficient_numbering: typing.Dict[ufl.Coefficient, int]
     coefficient_offsets: typing.Dict[ufl.Coefficient, int]
@@ -130,6 +132,7 @@ class IntegralIR(typing.NamedTuple):
     cell_shape: str
     unique_tables: typing.Dict[str, numpy.typing.NDArray[numpy.float64]]
     unique_table_types: typing.Dict[str, str]
+    unique_element_tables: typing.Dict[str, typing.Tuple[int,int,int]]
     integrand: typing.Dict[QuadratureRule, dict]
     name: str
     precision: int
@@ -338,11 +341,18 @@ def _compute_integral_ir(form_data, form_index, element_numbers, integral_names,
         "custom": "cell"
     }
 
+    #Pass on information to code generation that a custom integral is in form which means that 
+    #cwrapper header from basix needs to be included 
+    options["has_custom_integral"] = False
+
     # Iterate over groups of integrals
     irs = []
     for itg_data_index, itg_data in enumerate(form_data.integral_data):
 
         logger.info(f"Computing IR for integral in integral group {itg_data_index}")
+
+        if itg_data.integral_type in ufl.custom_integral_types:
+            options["has_custom_integral"] = True
 
         # Compute representation
         entitytype = _entity_types[itg_data.integral_type]
@@ -362,18 +372,14 @@ def _compute_integral_ir(form_data, form_index, element_numbers, integral_names,
             "num_vertices": cell.num_vertices(),
             "enabled_coefficients": itg_data.enabled_coefficients,
             "cell_shape": cellname,
-            "coordinate_element": finite_element_names[convert_element(itg_data.domain.ufl_coordinate_element())]
+            "coordinate_element": finite_element_names[convert_element(itg_data.domain.ufl_coordinate_element())],
+            "element_names": finite_element_names
         }
 
         # Get element space dimensions
         unique_elements = element_numbers.keys()
         ir["element_dimensions"] = {element: element.dim + element.num_global_support_dofs
                                     for element in unique_elements}
-
-        ir["element_ids"] = {
-            element: i
-            for i, element in enumerate(unique_elements)
-        }
 
         # Create dimensions of primary indices, needed to reset the argument
         # 'A' given to tabulate_tensor() by the assembler.
@@ -399,17 +405,13 @@ def _compute_integral_ir(form_data, form_index, element_numbers, integral_names,
             if scheme == "custom":
                 points = md["quadrature_points"]
                 weights = md["quadrature_weights"]
-            
+            # FIXME: Use dummy points and weights, real points and weights will be provided
+            # to tabulate tensor function 
             elif integral_type in ufl.custom_integral_types:
-                #FIXME: Use dummy points and weights, weights and points should be provided 
-                # at run time instead, use negative weight to indicate that it should be provided later 
-                #Check if this option can be passed via metadata scheme=="run_time"
                 if form_data.geometric_dimension == 3:
                     points, weights = (numpy.array([[0.0, 0.0,0.0], [1.0, 0.0,0.0]]),
                                        numpy.array([-1.0,-1.0 ]))
                 elif form_data.geometric_dimension == 2:
-                    # points, weights = (numpy.array([[0.0, 0.0]]),
-                    #                     numpy.array([-1.0 ]))
                     points, weights = (numpy.array([[0.0, 0.0], [1.0, 0.0]]),
                                        numpy.array([-1.0,-1.0 ]))
                 elif form_data.geometric_dimension == 1:
@@ -571,7 +573,7 @@ def _compute_form_ir(form_data, form_id, prefix, form_names, integral_names, ele
     # it has to know their names for codegen phase
     ir["integral_names"] = {}
     ir["subdomain_ids"] = {}
-    ufcx_integral_types = ("cell", "exterior_facet", "interior_facet")
+    ufcx_integral_types = ("cell", "exterior_facet", "interior_facet", "custom")
     for integral_type in ufcx_integral_types:
         ir["subdomain_ids"][integral_type] = []
         ir["integral_names"][integral_type] = []

@@ -138,6 +138,9 @@ def _generate_includes(options: dict):
 
     if "_Complex" in options["scalar_type"]:
         default_c_includes += ["#include <complex.h>"]
+    
+    if options["has_custom_integral"]:
+        default_c_includes += ["#include \"basix_cwrapper.h\""]
 
     s_h = set(default_h_includes)
     s_c = set(default_c_includes)

@@ -147,8 +147,6 @@ def _analyze_form(form: ufl.form.Form, options: typing.Dict) -> ufl.algorithms.f
     """
     if form.empty():
         raise RuntimeError(f"Form ({form}) seems to be zero: cannot compile it.")
-    #if _has_custom_integrals(form):
-    #raise RuntimeError(f"Form ({form}) contains unsupported custom integrals.")
 
     # Set default spacing for coordinate elements to be equispaced
     for n, i in enumerate(form._integrals):

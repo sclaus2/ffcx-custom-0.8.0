@@ -116,7 +116,7 @@ class FFCXBackendSymbols(object):
 
     def custom_num_points(self):
         """Number of quadrature points for custom integrals with run-time quadrature rule."""
-        return self.S("num_points")
+        return self.S("num_points[0]")
 
     def weights_table(self, quadrature_rule):
         """Table of quadrature weights."""

@@ -56,7 +56,8 @@ extern "C"
   {
     cell = 0,
     exterior_facet = 1,
-    interior_facet = 2
+    interior_facet = 2, 
+    custom = 3
   } ufcx_integral_type;
 
   typedef enum
