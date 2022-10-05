@@ -19,7 +19,7 @@ from ffcx.ir.analysis.modified_terminals import (analyse_modified_terminal,
                                                  is_modified_terminal)
 from ffcx.ir.analysis.visualise import visualise_graph
 from ffcx.ir.elementtables import UniqueTableReferenceT, build_optimized_tables
-from ffcx.ir.elementtables import ElementTables, build_element_tables
+from ffcx.ir.elementtables import build_element_tables
 from ufl.algorithms.balancing import balance_modifiers
 from ufl.checks import is_cellwise_constant
 from ufl.classes import QuadratureWeight
@@ -92,13 +92,13 @@ def compute_integral_ir(cell, integral_type, entitytype, integrands, argument_sh
             atol=p["table_atol"])
 
         ir["element_ids"] = {}
-        ir["unique_element_tables"]={}
+        ir["unique_element_tables"] = {}
         ir["element_deriv_order"] = {}
-        
+
         if integral_type in ufl.custom_integral_types:
             element_tables, element_deriv_order = build_element_tables(quadrature_rule, cell, integral_type, entitytype,
-                            initial_terminals.values())
-            ir["element_deriv_order"]=element_deriv_order
+                                                                       initial_terminals.values())
+            ir["element_deriv_order"] = element_deriv_order
 
             for count, e in enumerate(element_tables):
                 element = e.element
@@ -263,7 +263,7 @@ def compute_integral_ir(cell, integral_type, entitytype, integrands, argument_sh
             if table_types[name] not in ("zeros", "ones"):
                 active_tables[name] = tables[name]
                 active_table_types[name] = table_types[name]
-    
+
         # Add tables and types for this quadrature rule to global tables dict
         ir["unique_tables"].update(active_tables)
         ir["unique_table_types"].update(active_table_types)
@@ -272,14 +272,14 @@ def compute_integral_ir(cell, integral_type, entitytype, integrands, argument_sh
             active_element_tables = {}
             for e in element_tables:
                 name = e.name
-                #Check if table name is really referenced
+                # Check if table name is really referenced
                 if name in active_table_names:
                     if name not in active_element_tables.keys():
                         element = e.element
                         id = ir["element_ids"][element]
                         basix_index = e.basix_index
                         fc = e.fc
-                        active_element_tables[name]= (id, basix_index,fc)
+                        active_element_tables[name] = (id, basix_index, fc)
             ir["unique_element_tables"] = active_element_tables
 
         # Build IR dict for the given expressions

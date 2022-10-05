@@ -6,8 +6,6 @@
 
 import collections
 import logging
-#from turtle import shape
-from types import NoneType
 from typing import Any, Dict, List, Set, Tuple
 
 import ufl
@@ -16,9 +14,7 @@ from ffcx.codegeneration import integrals_template as ufcx_integrals
 from ffcx.codegeneration.backend import FFCXBackend
 from ffcx.codegeneration.C.cnodes import BinOp, CNode
 from ffcx.codegeneration.C.format_lines import format_indented_lines
-from ffcx.ir.elementtables import get_modified_terminal_element
 from ffcx.ir.integral import BlockDataT
-from ffcx.element_interface import convert_element
 from ffcx.ir.representationutils import QuadratureRule
 from ffcx.naming import cdtype_to_numpy, scalar_to_value_type
 
@@ -71,10 +67,10 @@ def generator(ir, options):
     code["additional_includes_set"] = set()  # FIXME: Get this out of code[]
 
     if ir.integral_type in ufl.custom_integral_types:
-        code["tabulate_tensor"] = "" 
+        code["tabulate_tensor"] = ""
         code["custom_tabulate_tensor"] = body
-    else: 
-        code["tabulate_tensor"] = body 
+    else:
+        code["tabulate_tensor"] = body
         code["custom_tabulate_tensor"] = ""
 
     if options["tabulate_tensor_void"]:
@@ -253,7 +249,7 @@ class IntegralGenerator(object):
 
         # Loop over quadrature rules
         for quadrature_rule, integrand in self.ir.integrand.items():
-            
+
             num_points = quadrature_rule.weights.shape[0]
 
             # Generate quadrature weights array
@@ -301,22 +297,22 @@ class IntegralGenerator(object):
         L = self.backend.language
         parts = []
         tables = self.ir.unique_tables
-        table_types = self.ir.unique_table_types
         padlen = self.ir.options["padlen"]
 
         table_names = sorted(tables)
-  
+
         if self.ir.integral_type in ufl.custom_integral_types:
             element_ids = self.ir.element_ids
             element_names = self.ir.element_names
             element_tables = self.ir.unique_element_tables
             element_deriv_order = self.ir.element_deriv_order
-            element_def_parts,tabulate_parts,table_parts = self.generate_custom_integral_tables(table_names,tables,  
-                                                                        float_type, element_ids, element_names, 
-                                                                        element_deriv_order, element_tables)
-            parts += element_def_parts
-            parts += tabulate_parts
-            parts += table_parts
+            el_def_part, tab_part, table_part = self.generate_custom_integral_tables(table_names, tables,
+                                                                                     float_type, element_ids,
+                                                                                     element_names, element_deriv_order,
+                                                                                     element_tables)
+            parts += el_def_part
+            parts += tab_part
+            parts += table_part
         else:
             # Define all tables
             for name in table_names:
@@ -328,8 +324,8 @@ class IntegralGenerator(object):
                 "Precomputed values of basis functions and precomputations",
                 "FE* dimensions: [permutation][entities][points][dofs]"])
         return parts
-    
-    def generate_custom_integral_tables(self,table_names,tables, float_type, element_ids, 
+
+    def generate_custom_integral_tables(self, table_names, tables, float_type, element_ids,
                                         element_names, element_deriv_order, element_tables):
         L = self.backend.language
         element_def_parts = []
@@ -339,21 +335,21 @@ class IntegralGenerator(object):
             name = element_names[e]
 
             decl = "ufcx_finite_element el_" + str(id) + " = " + name + ";"
-            element_def_parts+= [L.VerbatimStatement(decl)]
-        
+            element_def_parts += [L.VerbatimStatement(decl)]
+
         for e in element_ids:
             id = element_ids[e]
             decl = "basix_element* basix_element_" + str(id) + " = basix_element_create("
             decl += "el_" + str(id) + ".basix_family, "
             decl += "el_" + str(id) + ".basix_cell, "
             decl += "el_" + str(id) + ".degree, "
-            decl += "el_" + str(id) + ".lagrange_variant, " 
-            decl += "el_" + str(id) + ".dpc_variant, " 
-            decl += "el_" + str(id) + ".discontinuous, " 
-            decl += "el_" + str(id) + ".geometric_dimension); \n"
+            decl += "el_" + str(id) + ".lagrange_variant, "
+            decl += "el_" + str(id) + ".dpc_variant, "
+            decl += "el_" + str(id) + ".discontinuous, "
+            decl += "el_" + str(id) + ".geometric_dimension);"
 
-            element_def_parts+= [L.VerbatimStatement(decl)]
-        
+            element_def_parts += [L.VerbatimStatement(decl)]
+
         tabulate_parts = []
         for e in element_ids:
             id = element_ids[e]
@@ -361,75 +357,74 @@ class IntegralGenerator(object):
 
             cshape_str = "shape_" + str(id)
             decl = "int " + cshape_str + "[4]; \n"
-            decl += "basix_element_tabulate_shape(" 
-            decl += "basix_element_" + str(id) + ", " 
-            decl += str(self.backend.symbols.custom_num_points()) + ", " 
-            decl += str(nd) + ", " 
+            decl += "basix_element_tabulate_shape("
+            decl += "basix_element_" + str(id) + ", "
+            decl += str(self.backend.symbols.custom_num_points()) + ", "
+            decl += str(nd) + ", "
             decl += cshape_str + "); \n"
 
             # int table_size = shape[0]*shape[1]*shape[2]*shape[3];
             # double table[shape[0]][shape[1]][shape[2]][shape[3]];
             # basix_element_tabulate(element, points, num_points, nd, (double*) table, table_size);
-            decl += "int table_size_" + str(id) + "=  "
-            decl += cshape_str + "[0]*" + cshape_str + "[1]*" + cshape_str + "[2]*" + cshape_str + "[3]; \n" 
-            decl += "double table_" + str(id) + "[" + cshape_str + "[0]][" + cshape_str + "[1]][" 
-            decl +=  cshape_str + "[2]][" + cshape_str + "[3]]; \n"
+            decl += "int table_size_" + str(id) + "="
+            decl += cshape_str + "[0]*" + cshape_str + "[1]*" + cshape_str + "[2]*" + cshape_str + "[3]; \n"
+            decl += "double table_" + str(id) + "[" + cshape_str + "[0]][" + cshape_str + "[1]]["
+            decl += cshape_str + "[2]][" + cshape_str + "[3]]; \n"
 
-            decl += "basix_element_tabulate(" 
-            decl += "basix_element_" + str(id) + ", " + "points, " 
-            decl += str(self.backend.symbols.custom_num_points()) + ", " 
-            decl += str(nd) + ", " 
-            decl += "(double *) table_" +str(id) + ", table_size_" + str(id) +  ");"
+            decl += "basix_element_tabulate("
+            decl += "basix_element_" + str(id) + ", " + "points, "
+            decl += str(self.backend.symbols.custom_num_points()) + ", "
+            decl += str(nd) + ", "
+            decl += "(double *) table_" + str(id) + ", table_size_" + str(id) + ");"
 
-            tabulate_parts+=[L.VerbatimStatement(decl)]
-        
+            tabulate_parts += [L.VerbatimStatement(decl)]
+
         for e in element_ids:
             id = element_ids[e]
-            decl = "basix_element_destroy(basix_element_" + str(id) + ");\n" 
-            tabulate_parts+=[L.VerbatimStatement(decl)]
-        
-        tabulate_parts = L.commented_code_list(tabulate_parts, [
-                            "Tabulate basis functions and their derivatives",
-                            "dimensions: [derivatives (basix::indexing)][point index][basis function index][function component]"])
+            decl = "basix_element_destroy(basix_element_" + str(id) + ");"
+            tabulate_parts += [L.VerbatimStatement(decl)]
+
+        tabulate_parts = L.commented_code_list(tabulate_parts, ["Tabulate basis functions and their derivatives",
+                                                                "dimensions: [derivatives (basix::indexing)] \
+                                                                [point index][basis fn index][function component]"])
 
         table_parts = []
         for name in table_names:
             table = tables[name]
-            
-            #Replace number of points in array with symbolic number of points that is passed to 
-            #tabulate tensor at run-time
+
+            # Replace number of points in array with symbolic number of points that is passed to
+            # tabulate tensor at run-time
             brackets = ''.join("[%d]" % table.shape[0])
             brackets += ''.join("[%d]" % table.shape[1])
             brackets += ''.join("[%s]" % self.backend.symbols.custom_num_points())
             brackets += ''.join("[%d]" % table.shape[3])
 
-            #Declare array of the type e.g. double FE#_C#[1][1][num_points][3];
-            #to be filled at run-time using basix tabulate call 
+            # Declare array of the type e.g. double FE#_C#[1][1][num_points][3];
+            # to be filled at run-time using basix tabulate call
             decl = float_type + " " + name + brackets + "; \n"
 
-            table_parts+= [L.VerbatimStatement(decl)]
+            table_parts += [L.VerbatimStatement(decl)]
 
             num_points = self.backend.symbols.custom_num_points()
             iq = self.backend.symbols.quadrature_loop_index()
             arg_indices = tuple(self.backend.symbols.argument_loop_index(i) for i in range(3))
 
             brackets = []
-            if(table.shape[0]>1):
+            if (table.shape[0] > 1):
                 brackets = ''.join("[%s]" % arg_indices[0])
-            else: 
+            else:
                 brackets = ''.join("[0]")
 
-            if(table.shape[1]>1):
+            if (table.shape[1] > 1):
                 brackets += ''.join("[%s]" % arg_indices[1])
-            else: 
+            else:
                 brackets += ''.join("[0]")
-            
+
             brackets += ''.join("[%s]" % iq)
             brackets += ''.join("[%s]" % arg_indices[2])
             body = name + brackets + " = "
 
-            #Metadata associated to name: (id, basix_index,fc) 
-            # element_tables gives name of table together with element-id, basix_index and function component
+            # Element tables gives metadata associated to name: (id, basix_index,fc)
             # table dimensions: [derivatives (basix::indexing)][point index][basis function index][function component]
             name_mt = element_tables[name]
             brackets = ''.join("[%d]" % name_mt[1])
@@ -438,21 +433,21 @@ class IntegralGenerator(object):
             brackets += ''.join("[%d]" % name_mt[2])
             body += "table_" + str(name_mt[0]) + brackets + ";"
 
-            body =  [L.ForRange(arg_indices[2], 0, table.shape[3], body=body)]
-            body =  [L.ForRange(iq, 0, num_points, body=body)]
-            if(table.shape[1]>1):
-                body =  [L.ForRange(arg_indices[1], 0, table.shape[1], body=body)]
-            if(table.shape[0]>1):
+            body = [L.ForRange(arg_indices[2], 0, table.shape[3], body=body)]
+            body = [L.ForRange(iq, 0, num_points, body=body)]
+            if (table.shape[1] > 1):
+                body = [L.ForRange(arg_indices[1], 0, table.shape[1], body=body)]
+            if (table.shape[0] > 1):
                 body = [L.ForRange(arg_indices[0], 0, table.shape[0], body=body)]
-            
-            table_parts +=body
-        
+
+            table_parts += body
+
         # Add leading comment if there are any tables
         table_parts = L.commented_code_list(table_parts, [
             "Array for basis evaluations and basis derivative evaluations",
             "FE* dimensions: [permutation][entities][points][dofs]"])
-        
-        return element_def_parts,tabulate_parts,table_parts
+
+        return element_def_parts, tabulate_parts, table_parts
 
     def declare_table(self, name, table, padlen, value_type: str):
         """Declare a table.
@@ -485,7 +480,7 @@ class IntegralGenerator(object):
             quadparts = []
         else:
             num_points = quadrature_rule.points.shape[0]
-            #Override num_points with string for custom integral
+            # Override num_points with string for custom integral
             if self.ir.integral_type in ufl.custom_integral_types:
                 num_points = self.backend.symbols.custom_num_points()
             iq = self.backend.symbols.quadrature_loop_index()

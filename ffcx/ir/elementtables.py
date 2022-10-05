@@ -44,10 +44,10 @@ class UniqueTableReferenceT(typing.NamedTuple):
     is_uniform: bool
     is_permuted: bool
 
-# This is used for custom integrals in which the basix tables will be filled at run-time 
-# Each name 
+
+# This is used for custom integrals in which the basix tables will be filled at run-time
 class ElementTables(typing.NamedTuple):
-    name: str 
+    name: str
     element: ufl.FiniteElementBase
     element_counter: int
     averaged: str
@@ -55,8 +55,7 @@ class ElementTables(typing.NamedTuple):
     basix_index: int
     deriv_order: int
     fc: int
-    gdim: int 
-    shape: typing.Tuple[int]
+    gdim: int
 
 
 def equal_tables(a, b, rtol=default_rtol, atol=default_atol):
@@ -247,6 +246,7 @@ def get_modified_terminal_element(mt) -> typing.Optional[ModifiedTerminalElement
 
     return ModifiedTerminalElement(element, mt.averaged, local_derivatives, fc)
 
+
 def permute_quadrature_interval(points, reflections=0):
     output = points.copy()
     for p in output:
@@ -415,8 +415,9 @@ def build_optimized_tables(quadrature_rule, cell, integral_type, entitytype,
         mt_tables[mt] = UniqueTableReferenceT(
             name, tbl, offset, block_size, tabletype,
             tabletype in piecewise_ttypes, tabletype in uniform_ttypes, is_permuted)
-        
+
     return mt_tables
+
 
 def is_zeros_table(table, rtol=default_rtol, atol=default_atol):
     return (numpy.product(table.shape) == 0
@@ -484,34 +485,28 @@ def analyse_table_type(table, rtol=default_rtol, atol=default_atol):
             ttype = "varying"
     return ttype
 
+
 def create_element_deriv_order(element_tables):
     element_deriv_order = {}
     deriv_order = 0
 
-    #Go through table and determine highest derivative needed from element
+    # Go through table and determine highest derivative needed from element
     for e in element_tables:
         element = e.element
         deriv_order = e.deriv_order
         if element in element_deriv_order.keys():
             deriv_order_exist = element_deriv_order[element]
-            if(deriv_order>deriv_order_exist):
-                element_deriv_order[element]=deriv_order
-        else: 
+            if (deriv_order > deriv_order_exist):
+                element_deriv_order[element] = deriv_order
+        else:
             element_deriv_order[element] = deriv_order
 
     return element_deriv_order
 
+
 def build_element_tables(quadrature_rule, cell, integral_type, entitytype,
-                           modified_terminals):
+                         modified_terminals):
     """Build the element tables needed for a list of modified terminals.
-
-    Input:
-      entitytype - str
-      modified_terminals - ordered sequence of unique modified terminals
-      FIXME: Document
-
-    Output:
-      mt_element_tables 
     """
     # Add to element tables
     analysis = {}
@@ -536,32 +531,19 @@ def build_element_tables(quadrature_rule, cell, integral_type, entitytype,
 
         deriv_order = sum(local_derivatives)
         basix_idx = basix_index(local_derivatives)
-
-        # Tabulate table of basis functions and derivatives in points for each entity
-        tdim = cell.topological_dimension()
         gdim = cell.geometric_dimension()
 
-        element = convert_element(element)
-        tbl = element.tabulate(deriv_order,quadrature_rule.points)
-
-        #for entity in range(num_entities):
-        #    tbl = component_element.tabulate(deriv_order, entity_points)
-        # Generate table and store table name with modified terminal
-
         # Build name for this particular table
+        element = convert_element(element)
         element_number = element_numbers[element]
 
         name = generate_psi_table_name(quadrature_rule, element_number, avg, entitytype,
                                        local_derivatives, flat_component)
-        
-        element = convert_element(element)
-       
-        # tables is just np.arrays, mt_tables hold metadata too
+
         element_tables.append(ElementTables(
-            name, element, element_number, avg, local_derivatives, basix_idx, deriv_order, flat_component, gdim, tbl.shape))
-    
-    #Create dictionary which gives the highest derivative needed for 
+            name, element, element_number, avg, local_derivatives, basix_idx, deriv_order, flat_component, gdim))
+
+    # Create dictionary which gives the highest derivative for each element
     element_deriv_order = create_element_deriv_order(element_tables)
 
     return element_tables, element_deriv_order
-

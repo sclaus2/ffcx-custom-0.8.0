@@ -132,7 +132,7 @@ class IntegralIR(typing.NamedTuple):
     cell_shape: str
     unique_tables: typing.Dict[str, numpy.typing.NDArray[numpy.float64]]
     unique_table_types: typing.Dict[str, str]
-    unique_element_tables: typing.Dict[str, typing.Tuple[int,int,int]]
+    unique_element_tables: typing.Dict[str, typing.Tuple[int, int, int]]
     integrand: typing.Dict[QuadratureRule, dict]
     name: str
     precision: int
@@ -341,8 +341,8 @@ def _compute_integral_ir(form_data, form_index, element_numbers, integral_names,
         "custom": "cell"
     }
 
-    #Pass on information to code generation that a custom integral is in form which means that 
-    #cwrapper header from basix needs to be included 
+    # Pass on information to code generation that a custom integral is in form which means that
+    # cwrapper header from basix needs to be included
     options["has_custom_integral"] = False
 
     # Iterate over groups of integrals
@@ -406,17 +406,17 @@ def _compute_integral_ir(form_data, form_index, element_numbers, integral_names,
                 points = md["quadrature_points"]
                 weights = md["quadrature_weights"]
             # FIXME: Use dummy points and weights, real points and weights will be provided
-            # to tabulate tensor function 
+            # to tabulate tensor function at run-time
             elif integral_type in ufl.custom_integral_types:
                 if form_data.geometric_dimension == 3:
-                    points, weights = (numpy.array([[0.0, 0.0,0.0], [1.0, 0.0,0.0]]),
-                                       numpy.array([-1.0,-1.0 ]))
+                    points, weights = (numpy.array([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]]),
+                                       numpy.array([-1.0, -1.0]))
                 elif form_data.geometric_dimension == 2:
                     points, weights = (numpy.array([[0.0, 0.0], [1.0, 0.0]]),
-                                       numpy.array([-1.0,-1.0 ]))
+                                       numpy.array([-1.0, -1.0]))
                 elif form_data.geometric_dimension == 1:
                     points, weights = (numpy.array([[0.0], [1.0]]),
-                                       numpy.array([-1.0,-1.0 ]))
+                                       numpy.array([-1.0, -1.0]))
 
             elif scheme == "vertex":
                 # FIXME: Could this come from basix?
