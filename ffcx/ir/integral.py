@@ -18,8 +18,8 @@ from ffcx.ir.analysis.graph import build_scalar_graph
 from ffcx.ir.analysis.modified_terminals import (analyse_modified_terminal,
                                                  is_modified_terminal)
 from ffcx.ir.analysis.visualise import visualise_graph
-from ffcx.ir.elementtables import UniqueTableReferenceT, build_optimized_tables
-from ffcx.ir.elementtables import build_element_tables
+from ffcx.ir.elementtables import (UniqueTableReferenceT, build_element_tables,
+                                   build_optimized_tables)
 from ufl.algorithms.balancing import balance_modifiers
 from ufl.checks import is_cellwise_constant
 from ufl.classes import QuadratureWeight
@@ -92,8 +92,8 @@ def compute_integral_ir(cell, integral_type, entitytype, integrands, argument_sh
             atol=p["table_atol"])
 
         ir["element_ids"] = {}
-        ir["unique_element_tables"] = {}
         ir["element_deriv_order"] = {}
+        ir["unique_element_tables"] = {}
 
         if integral_type in ufl.custom_integral_types:
             element_tables, element_deriv_order = build_element_tables(quadrature_rule, cell, integral_type, entitytype,

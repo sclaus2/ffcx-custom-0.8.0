@@ -12,7 +12,8 @@ import numpy
 
 import ufl
 import ufl.utils.derivativetuples
-from ffcx.element_interface import basix_index, convert_element, QuadratureElement
+from ffcx.element_interface import (QuadratureElement, basix_index,
+                                    convert_element)
 from ffcx.ir.representationutils import (create_quadrature_points_and_weights,
                                          integral_type_to_entity_dim,
                                          map_integral_points)
@@ -45,7 +46,7 @@ class UniqueTableReferenceT(typing.NamedTuple):
     is_permuted: bool
 
 
-# This is used for custom integrals in which the basix tables will be filled at run-time
+# This is used for custom integrals in which the basix tables will computed at run-time
 class ElementTables(typing.NamedTuple):
     name: str
     element: ufl.FiniteElementBase
@@ -506,9 +507,8 @@ def create_element_deriv_order(element_tables):
 
 def build_element_tables(quadrature_rule, cell, integral_type, entitytype,
                          modified_terminals):
-    """Build the element tables needed for a list of modified terminals.
-    """
-    # Add to element tables
+    # Collect information on each named basis function evaluation for which 
+    # basix_tabulate needs to be called. 
     analysis = {}
     for mt in modified_terminals:
         res = get_modified_terminal_element(mt)

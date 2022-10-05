@@ -19,7 +19,7 @@ import numpy.typing
 
 import basix.ufl_wrapper
 import ufl
-from ffcx.element_interface import convert_element, QuadratureElement
+from ffcx.element_interface import QuadratureElement, convert_element
 
 logger = logging.getLogger("ffcx")
 
