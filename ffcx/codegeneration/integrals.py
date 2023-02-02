@@ -345,8 +345,7 @@ class IntegralGenerator(object):
             decl += "el_" + str(id) + ".degree, "
             decl += "el_" + str(id) + ".lagrange_variant, "
             decl += "el_" + str(id) + ".dpc_variant, "
-            decl += "el_" + str(id) + ".discontinuous, "
-            decl += "el_" + str(id) + ".geometric_dimension);"
+            decl += "el_" + str(id) + ".discontinuous);"
 
             element_def_parts += [L.VerbatimStatement(decl)]
 
@@ -372,7 +371,9 @@ class IntegralGenerator(object):
             decl += cshape_str + "[2]][" + cshape_str + "[3]]; \n"
 
             decl += "basix_element_tabulate("
-            decl += "basix_element_" + str(id) + ", " + "points, "
+            decl += "basix_element_" + str(id) + ", " 
+            decl += "el_" + str(id) + ".geometric_dimension" + ", "
+            decl += "points, "
             decl += str(self.backend.symbols.custom_num_points()) + ", "
             decl += str(nd) + ", "
             decl += "(double *) table_" + str(id) + ", table_size_" + str(id) + ");"
@@ -384,9 +385,9 @@ class IntegralGenerator(object):
             decl = "basix_element_destroy(basix_element_" + str(id) + ");"
             tabulate_parts += [L.VerbatimStatement(decl)]
 
-        tabulate_parts = L.commented_code_list(tabulate_parts, ["Tabulate basis functions and their derivatives",
-                                                                "dimensions: [derivatives (basix::indexing)] \
-                                                                [point index][basis fn index][function component]"])
+        tabulate_parts = L.commented_code_list(tabulate_parts,
+                                               ["Tabulate basis functions and their derivatives",
+                                                "dim: [derivatives (basix::idx)][point][basis fn][function component]"])
 
         table_parts = []
         for name in table_names:

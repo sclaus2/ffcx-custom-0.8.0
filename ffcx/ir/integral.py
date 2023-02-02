@@ -100,10 +100,12 @@ def compute_integral_ir(cell, integral_type, entitytype, integrands, argument_sh
                                                                        initial_terminals.values())
             ir["element_deriv_order"] = element_deriv_order
 
-            for count, e in enumerate(element_tables):
+            count = 0
+            for i, e in enumerate(element_tables):
                 element = e.element
                 if element not in ir["element_ids"].keys():
                     ir["element_ids"][element] = count
+                    count += 1
 
         # Fetch unique tables for this quadrature rule
         table_types = {v.name: v.ttype for v in mt_table_reference.values()}
