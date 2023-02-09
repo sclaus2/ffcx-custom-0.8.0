@@ -169,13 +169,13 @@ class FFCXBackendDefinitions(object):
         If reference facet coordinates are given:
           x = sum_k xdof_k xphi_k(Xf)
         """
-        if self.integral_type in ufl.custom_integral_types:
-            # FIXME: Jacobian may need adjustment for custom_integral_types
-            if mt.local_derivatives:
-                logging.exception("FIXME: Jacobian in custom integrals is not implemented.")
-            return []
-        else:
-            return self._define_coordinate_dofs_lincomb(e, mt, tabledata, quadrature_rule, access)
+        # if self.integral_type in ufl.custom_integral_types:
+        #     # FIXME: Jacobian may need adjustment for custom_integral_types
+        #     if mt.local_derivatives:
+        #         logging.exception("FIXME: Jacobian in custom integrals is not implemented.")
+        #     return []
+        # else:
+        return self._define_coordinate_dofs_lincomb(e, mt, tabledata, quadrature_rule, access)
 
     def jacobian(self, e, mt, tabledata, quadrature_rule, access):
         """Return definition code for the Jacobian of x(X)."""

@@ -95,14 +95,15 @@ class FFCXBackendAccess(object):
                 raise RuntimeError("FIXME: Jacobian in custom integrals is not implemented.")
 
             # Access predefined quadrature points table
-            x = self.symbols.custom_points_table()
-            iq = self.symbols.quadrature_loop_index()
-            gdim, = mt.terminal.ufl_shape
-            if gdim == 1:
-                index = iq
-            else:
-                index = iq * gdim + mt.flat_component
-            return x[index]
+            x = self.symbols.x_component(mt) #self.symbols.custom_points_table()
+            # iq = self.symbols.quadrature_loop_index()
+            # gdim, = mt.terminal.ufl_shape
+            # if gdim == 1:
+            #     index = iq
+            # else:
+            #     index = iq * gdim + mt.flat_component
+            # return x[index]
+            return x 
         elif self.integral_type == "expression":
             # Physical coordinates are computed by code generated in
             # definitions

@@ -541,7 +541,6 @@ class IntegralGenerator(object):
                     # data, as well as some, but not all, of the
                     # symbolic geometric terminals
                     tabledata = attr.get('tr')
-
                     # Backend specific modified terminal translation
                     vaccess = self.backend.access.get(mt.terminal, mt, tabledata, quadrature_rule)
                     predef, vdef = self.backend.definitions.get(mt.terminal, mt, tabledata, quadrature_rule, vaccess)
