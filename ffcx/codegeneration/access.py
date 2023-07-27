@@ -103,7 +103,7 @@ class FFCXBackendAccess(object):
             # else:
             #     index = iq * gdim + mt.flat_component
             # return x[index]
-            return x 
+            return x
         elif self.integral_type == "expression":
             # Physical coordinates are computed by code generated in
             # definitions

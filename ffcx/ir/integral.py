@@ -280,7 +280,7 @@ def compute_integral_ir(cell, integral_type, entitytype, integrands, argument_sh
             for e in element_tables:
                 name = e.name
                 # Check if table name is really referenced in integral
-                if name in active_table_names:
+                if name in active_tables.keys():
                     if name not in active_element_table_names:
                         active_element_table_names.add(name)
                         active_element_tables[unique_table_id] = e
