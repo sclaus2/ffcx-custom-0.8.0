@@ -270,18 +270,21 @@ def compute_integral_ir(cell, integral_type, entitytype, integrands, argument_sh
         ir["unique_tables"].update(active_tables)
         ir["unique_table_types"].update(active_table_types)
 
+        # For custom integrals find which tables names are actually referenced
+        # and keep element tables for these referenced elements
+        unique_table_id = 0 
+
         if integral_type in ufl.custom_integral_types:
             active_element_tables = {}
+            active_element_table_names = set()
             for e in element_tables:
                 name = e.name
-                # Check if table name is really referenced
+                # Check if table name is really referenced in integral
                 if name in active_table_names:
-                    if name not in active_element_tables.keys():
-                        element = e.element
-                        id = ir["element_ids"][element]
-                        basix_index = e.basix_index
-                        fc = e.fc
-                        active_element_tables[name] = (id, basix_index, fc)
+                    if name not in active_element_table_names:
+                        active_element_table_names.add(name)
+                        active_element_tables[unique_table_id] = e
+                        unique_table_id +=1
             ir["unique_element_tables"] = active_element_tables
 
         # Build IR dict for the given expressions

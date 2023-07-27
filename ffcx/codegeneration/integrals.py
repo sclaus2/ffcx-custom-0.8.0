@@ -8,6 +8,8 @@ import collections
 import logging
 from typing import Any, Dict, List, Set, Tuple
 
+import numpy
+
 import ufl
 from ffcx.codegeneration import geometry
 from ffcx.codegeneration import integrals_template as ufcx_integrals
@@ -306,13 +308,12 @@ class IntegralGenerator(object):
             element_names = self.ir.element_names
             element_tables = self.ir.unique_element_tables
             element_deriv_order = self.ir.element_deriv_order
-            el_def_part, tab_part, table_part = self.generate_custom_integral_tables(table_names, tables,
+            el_def_part, tab_part = self.generate_custom_integral_tables(table_names, tables,
                                                                                      float_type, element_ids,
                                                                                      element_names, element_deriv_order,
                                                                                      element_tables)
             parts += el_def_part
             parts += tab_part
-            parts += table_part
         else:
             # Define all tables
             for name in table_names:
@@ -330,125 +331,60 @@ class IntegralGenerator(object):
         L = self.backend.language
         element_def_parts = []
 
-        for e in element_ids:
-            id = element_ids[e]
-            name = element_names[e]
-
-            decl = "ufcx_finite_element el_" + str(id) + " = " + name + ";"
-            element_def_parts += [L.VerbatimStatement(decl)]
-
-        for e in element_ids:
-            id = element_ids[e]
-            decl = "basix_element* basix_element_" + str(id) + " = basix_element_create("
-            decl += "el_" + str(id) + ".basix_family, "
-            decl += "el_" + str(id) + ".basix_cell, "
-            decl += "el_" + str(id) + ".degree, "
-            decl += "el_" + str(id) + ".lagrange_variant, "
-            decl += "el_" + str(id) + ".dpc_variant, "
-            decl += "el_" + str(id) + ".discontinuous);"
+        for id, e in element_tables.items():
+            component_element, offset, stride = e.element.get_component_element(e.fc)
+            decl = "// Represented element is " + element_names[e.element] + " component " + str(e.fc) + "\n"
+            decl += "basix_element* basix_element_" + str(id) + " = basix_element_create("
+            decl += str(int(component_element.element_family)) + ", "
+            decl += str(int(component_element.cell_type)) + ", "
+            decl += str(component_element.degree()) + ", "
+            decl += str(int(component_element.lagrange_variant)) + ", "
+            decl += str(int(component_element.dpc_variant)) + ", "
+            decl+= "true" if component_element.discontinuous else "false"
+            decl += ");"
 
             element_def_parts += [L.VerbatimStatement(decl)]
+        comment = "FIXME: the elements should be generated in another code block for efficiency"
+        element_def_parts = L.commented_code_list(element_def_parts,
+                                        [comment])
 
         tabulate_parts = []
-        for e in element_ids:
-            id = element_ids[e]
-            nd = element_deriv_order[e]
+
+        for id, e in element_tables.items():
+            nd = e.deriv_order
 
             cshape_str = "shape_" + str(id)
-            decl = "int " + cshape_str + "[4]; \n"
+            decl = "int " + cshape_str + "[4];\n"
             decl += "basix_element_tabulate_shape("
             decl += "basix_element_" + str(id) + ", "
             decl += str(self.backend.symbols.custom_num_points()) + ", "
             decl += str(nd) + ", "
-            decl += cshape_str + "); \n"
+            decl += cshape_str + ");\n"
 
             # int table_size = shape[0]*shape[1]*shape[2]*shape[3];
             # double table[shape[0]][shape[1]][shape[2]][shape[3]];
             # basix_element_tabulate(element, points, num_points, nd, (double*) table, table_size);
             decl += "int table_size_" + str(id) + "="
-            decl += cshape_str + "[0]*" + cshape_str + "[1]*" + cshape_str + "[2]*" + cshape_str + "[3]; \n"
-            decl += "double table_" + str(id) + "[" + cshape_str + "[0]][" + cshape_str + "[1]]["
-            decl += cshape_str + "[2]][" + cshape_str + "[3]]; \n"
+            decl += cshape_str + "[0]*" + cshape_str + "[1]*" + cshape_str + "[2]*" + cshape_str + "[3];\n"
+            decl += "double " + e.name + "[" + cshape_str + "[0]][" + cshape_str + "[1]]["
+            decl += cshape_str + "[2]][" + cshape_str + "[3]];\n"
 
             decl += "basix_element_tabulate("
-            decl += "basix_element_" + str(id) + ", " 
+            decl += "basix_element_" + str(id) + ", "
             decl += "el_" + str(id) + ".geometric_dimension" + ", "
             decl += "points, "
             decl += str(self.backend.symbols.custom_num_points()) + ", "
             decl += str(nd) + ", "
-            decl += "(double *) table_" + str(id) + ", table_size_" + str(id) + ");"
+            decl += "(double *) "+ e.name + ", table_size_" + str(id) + ");\n"
+            decl += "basix_element_destroy(basix_element_" + str(id) + ");"
 
-            tabulate_parts += [L.VerbatimStatement(decl)]
-
-        for e in element_ids:
-            id = element_ids[e]
-            decl = "basix_element_destroy(basix_element_" + str(id) + ");"
             tabulate_parts += [L.VerbatimStatement(decl)]
 
         tabulate_parts = L.commented_code_list(tabulate_parts,
                                                ["Tabulate basis functions and their derivatives",
                                                 "dim: [derivatives (basix::idx)][point][basis fn][function component]"])
 
-        table_parts = []
-        for name in table_names:
-            table = tables[name]
-
-            # Replace number of points in array with symbolic number of points that is passed to
-            # tabulate tensor at run-time
-            brackets = ''.join("[%d]" % table.shape[0])
-            brackets += ''.join("[%d]" % table.shape[1])
-            brackets += ''.join("[%s]" % self.backend.symbols.custom_num_points())
-            brackets += ''.join("[%d]" % table.shape[3])
-
-            # Declare array of the type e.g. double FE#_C#[1][1][num_points][3];
-            # to be filled at run-time using basix tabulate call
-            decl = float_type + " " + name + brackets + "; \n"
-
-            table_parts += [L.VerbatimStatement(decl)]
-
-            num_points = self.backend.symbols.custom_num_points()
-            iq = self.backend.symbols.quadrature_loop_index()
-            arg_indices = tuple(self.backend.symbols.argument_loop_index(i) for i in range(3))
-
-            brackets = []
-            if (table.shape[0] > 1):
-                brackets = ''.join("[%s]" % arg_indices[0])
-            else:
-                brackets = ''.join("[0]")
-
-            if (table.shape[1] > 1):
-                brackets += ''.join("[%s]" % arg_indices[1])
-            else:
-                brackets += ''.join("[0]")
-
-            brackets += ''.join("[%s]" % iq)
-            brackets += ''.join("[%s]" % arg_indices[2])
-            body = name + brackets + " = "
-
-            # Element tables gives metadata associated to name: (id, basix_index,fc)
-            # table dimensions: [derivatives (basix::indexing)][point index][basis function index][function component]
-            name_mt = element_tables[name]
-            brackets = ''.join("[%d]" % name_mt[1])
-            brackets += ''.join("[%s]" % iq)
-            brackets += ''.join("[%s]" % arg_indices[2])
-            brackets += ''.join("[%d]" % name_mt[2])
-            body += "table_" + str(name_mt[0]) + brackets + ";"
-
-            body = [L.ForRange(arg_indices[2], 0, table.shape[3], body=body)]
-            body = [L.ForRange(iq, 0, num_points, body=body)]
-            if (table.shape[1] > 1):
-                body = [L.ForRange(arg_indices[1], 0, table.shape[1], body=body)]
-            if (table.shape[0] > 1):
-                body = [L.ForRange(arg_indices[0], 0, table.shape[0], body=body)]
-
-            table_parts += body
-
-        # Add leading comment if there are any tables
-        table_parts = L.commented_code_list(table_parts, [
-            "Array for basis evaluations and basis derivative evaluations",
-            "FE* dimensions: [permutation][entities][points][dofs]"])
-
-        return element_def_parts, tabulate_parts, table_parts
+        return element_def_parts, tabulate_parts
 
     def declare_table(self, name, table, padlen, value_type: str):
         """Declare a table.
