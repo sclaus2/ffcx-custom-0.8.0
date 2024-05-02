@@ -66,6 +66,14 @@ def generator(ir: IntegralIR, options):
       code["custom_tabulate_tensor"] = ""
       code["tabulate_tensor"] = body
 
+    finite_element_str = ""
+    if len(ir.finite_elements) > 0:
+        finite_element_str = ", ".join(f"&{finite_element}" for finite_element in ir.finite_elements)
+
+    finite_element_str = "{" + finite_element_str + "}"
+
+    print(finite_element_str)
+
     if ir.integral_type in ufl.custom_integral_types:
       code["custom_tabulate_tensor_float32"] = "NULL"
       code["custom_tabulate_tensor_float64"] = "NULL"
@@ -84,6 +92,8 @@ def generator(ir: IntegralIR, options):
           scalar_type=dtype_to_c_type(options["scalar_type"]),
           geom_type=dtype_to_c_type(dtype_to_scalar_dtype(options["scalar_type"])),
           coordinate_element=f"&{ir.coordinate_element}",
+          num_finite_elements = len(ir.finite_elements),
+          finite_elements=finite_element_str,
           custom_tabulate_tensor_float32=code["custom_tabulate_tensor_float32"],
           custom_tabulate_tensor_float64=code["custom_tabulate_tensor_float64"],
           custom_tabulate_tensor_complex64=code["custom_tabulate_tensor_complex64"],
@@ -107,6 +117,8 @@ def generator(ir: IntegralIR, options):
         scalar_type=dtype_to_c_type(options["scalar_type"]),
         geom_type=dtype_to_c_type(dtype_to_scalar_dtype(options["scalar_type"])),
         coordinate_element=f"&{ir.coordinate_element}",
+        num_finite_elements = len(ir.finite_elements),
+        finite_elements=finite_element_str,
         tabulate_tensor_float32=code["tabulate_tensor_float32"],
         tabulate_tensor_float64=code["tabulate_tensor_float64"],
         tabulate_tensor_complex64=code["tabulate_tensor_complex64"],

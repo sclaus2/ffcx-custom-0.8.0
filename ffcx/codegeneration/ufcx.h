@@ -334,7 +334,7 @@ extern "C"
       double* restrict A, const double* restrict w,
       const double* restrict c, const double* restrict coordinate_dofs,
       const int* restrict entity_local_index,
-      const uint8_t* restrict quadrature_permutation,      
+      const uint8_t* restrict quadrature_permutation,
       const int* restrict num_points,
       const double* restrict points,
       const double* restrict weights);
@@ -343,7 +343,7 @@ extern "C"
       long double* restrict A, const long double* restrict w,
       const long double* restrict c, const long double* restrict coordinate_dofs,
       const int* restrict entity_local_index,
-      const uint8_t* restrict quadrature_permutation,      
+      const uint8_t* restrict quadrature_permutation,
       const int* restrict num_points,
       const long double* restrict points,
       const long double* restrict weights);
@@ -352,7 +352,7 @@ extern "C"
       float _Complex* restrict A, const float _Complex* restrict w,
       const float _Complex* restrict c, const float* restrict coordinate_dofs,
       const int* restrict entity_local_index,
-      const uint8_t* restrict quadrature_permutation,      
+      const uint8_t* restrict quadrature_permutation,
       const int* restrict num_points,
       const float _Complex* restrict points,
       const float _Complex* restrict weights);
@@ -361,7 +361,7 @@ extern "C"
       double _Complex* restrict A, const double _Complex* restrict w,
       const double _Complex* restrict c, const double* restrict coordinate_dofs,
       const int* restrict entity_local_index,
-      const uint8_t* restrict quadrature_permutation,      
+      const uint8_t* restrict quadrature_permutation,
       const int* restrict num_points,
       const double _Complex* restrict points,
       const double _Complex* restrict weights);
@@ -384,6 +384,9 @@ extern "C"
 
     /// Get the coordinate element associated with the geometry of the mesh.
     ufcx_finite_element* coordinate_element;
+    int num_finite_elements;
+    ufcx_finite_element** finite_elements;
+
   } ufcx_integral;
 
   typedef struct ufcx_expression

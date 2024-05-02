@@ -137,8 +137,9 @@ class IntegralIR(typing.NamedTuple):
     enabled_coefficients: list[bool]
     element_dimensions: dict[basix.ufl._ElementBase, int]
     element_ids: dict[basix.ufl._ElementBase, int]
-    element_names: dict[basix.ufl._ElementBase, str]
     element_deriv_order: dict[basix.ufl._ElementBase, int]
+    element_numbers: dict[int,basix.ufl._ElementBase]
+    finite_elements: list[str]
     tensor_shape: list[int]
     coefficient_numbering: dict[ufl.Coefficient, int]
     coefficient_offsets: dict[ufl.Coefficient, int]
@@ -151,7 +152,6 @@ class IntegralIR(typing.NamedTuple):
     needs_facet_permutations: bool
     coordinate_element: str
 
-
 class ExpressionIR(typing.NamedTuple):
     """Intermediate representation of an expression."""
 
@@ -159,11 +159,16 @@ class ExpressionIR(typing.NamedTuple):
     options: dict
     unique_tables: dict[str, npt.NDArray[np.float64]]
     unique_table_types: dict[str, str]
+    unique_element_tables: dict[str, tuple[int, int, int]]
     integrand: dict[QuadratureRule, dict]
     coefficient_numbering: dict[ufl.Coefficient, int]
     coefficient_offsets: dict[ufl.Coefficient, int]
     integral_type: str
     entitytype: str
+    element_ids: dict[basix.ufl._ElementBase, int]
+    element_deriv_order: dict[basix.ufl._ElementBase, int]
+    element_numbers: dict[int,basix.ufl._ElementBase]
+    finite_elements: list[str]
     tensor_shape: list[int]
     expression_shape: list[int]
     original_constant_offsets: dict[ufl.Constant, int]
@@ -407,6 +412,7 @@ def _compute_integral_ir(
 
     # Iterate over groups of integrals
     irs = []
+
     for itg_data_index, itg_data in enumerate(form_data.integral_data):
         logger.info(f"Computing IR for integral in integral group {itg_data_index}")
 
@@ -426,7 +432,6 @@ def _compute_integral_ir(
             "entitytype": entitytype,
             "enabled_coefficients": itg_data.enabled_coefficients,
             "coordinate_element": finite_element_names[itg_data.domain.ufl_coordinate_element()],
-            "element_names": finite_element_names
         }
 
         # Get element space dimensions
@@ -618,6 +623,7 @@ def _compute_integral_ir(
             ir["tensor_shape"],
             options,
             visualise,
+            finite_element_names
         )
 
         ir.update(integral_ir)
@@ -880,7 +886,7 @@ def _compute_expression_ir(
         )
 
     expression_ir = compute_integral_ir(
-        cell, ir["integral_type"], ir["entitytype"], integrands, tensor_shape, options, visualise
+        cell, ir["integral_type"], ir["entitytype"], integrands, tensor_shape, options, visualise, finite_element_names
     )
     ir["options"] = options
     ir.update(expression_ir)

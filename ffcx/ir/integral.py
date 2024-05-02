@@ -20,7 +20,7 @@ from ffcx.ir.analysis.factorization import compute_argument_factorization
 from ffcx.ir.analysis.graph import build_scalar_graph
 from ffcx.ir.analysis.modified_terminals import analyse_modified_terminal, is_modified_terminal
 from ffcx.ir.analysis.visualise import visualise_graph
-from ffcx.ir.elementtables import UniqueTableReferenceT, build_optimized_tables, build_element_tables
+from ffcx.ir.elementtables import UniqueTableReferenceT, build_optimized_tables, build_element_tables, unique_finite_element_names
 
 logger = logging.getLogger("ffcx")
 
@@ -46,7 +46,7 @@ class BlockDataT(typing.NamedTuple):
     is_permuted: bool  # Do quad points on facets need to be permuted?
 
 
-def compute_integral_ir(cell, integral_type, entitytype, integrands, argument_shape, p, visualise):
+def compute_integral_ir(cell, integral_type, entitytype, integrands, argument_shape, p, visualise, finite_element_names):
     """Compute intermediate representation for an integral."""
     # The intermediate representation dict we're building and returning
     # here
@@ -97,9 +97,11 @@ def compute_integral_ir(cell, integral_type, entitytype, integrands, argument_sh
         ir["element_ids"] = {}
         ir["element_deriv_order"] = {}
         ir["unique_element_tables"] = {}
+        ir["element_numbers"] = {}
+        ir["finite_elements"] = {}
 
         if integral_type in ufl.custom_integral_types:
-            element_tables, element_deriv_order = build_element_tables(quadrature_rule, entitytype, initial_terminals.values())
+            element_tables, element_deriv_order = build_element_tables(quadrature_rule, entitytype, initial_terminals.values(), finite_element_names)
             ir["element_deriv_order"] = element_deriv_order
 
             count = 0
@@ -304,6 +306,7 @@ def compute_integral_ir(cell, integral_type, entitytype, integrands, argument_sh
                         active_element_tables[unique_table_id] = e
                         unique_table_id +=1
             ir["unique_element_tables"] = active_element_tables
+            ir["finite_elements"] = unique_finite_element_names(ir["unique_element_tables"])
 
         # Build IR dict for the given expressions
         # Store final ir for this num_points

@@ -236,12 +236,10 @@ class IntegralGenerator:
 
         if self.ir.integral_type in ufl.custom_integral_types:
             #table_names = [name for name in sorted(tables) if table_types[name] in piecewise_ttypes]
-            #element_ids = self.ir.element_ids
-            element_names = self.ir.element_names
             element_tables = self.ir.unique_element_tables
             #element_deriv_order = self.ir.element_deriv_order
 
-            el_def_part, tab_part, copy_table_part = self.generate_custom_integral_tables(element_names, element_tables, tables)
+            el_def_part, tab_part, copy_table_part = self.generate_custom_integral_tables(element_tables, tables)
             parts += el_def_part
             parts += tab_part
             parts += copy_table_part
@@ -581,12 +579,12 @@ class IntegralGenerator:
 
         return quadparts, intermediates
 
-    def generate_custom_integral_tables(self, element_names, element_tables, tables):
+    def generate_custom_integral_tables(self, element_tables, tables):
         element_def_parts = []
 
         for id, e in element_tables.items():
             component_element, _, _ = e.element.get_component_element(e.fc)
-            decl = "// Represented element is " + element_names[e.element] + " component " + str(e.fc) + "\n"
+            decl = "// Represented element is " + e.element_name + " component " + str(e.fc) + "\n"
             decl += "basix_element* basix_element_" + str(id) + " = basix_element_create("
             decl += str(int(component_element.element_family)) + ", "
             decl += str(int(component_element.cell_type)) + ", "

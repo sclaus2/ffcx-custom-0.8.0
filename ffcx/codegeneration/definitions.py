@@ -234,7 +234,7 @@ class FFCXBackendDefinitions:
         If reference facet coordinates are given:
           x = sum_k xdof_k xphi_k(Xf)
         """
-        return self._define_coordinate_dofs_lincomb(e, mt, tabledata, quadrature_rule, access)
+        return self._define_coordinate_dofs_lincomb(mt, tabledata, quadrature_rule, access)
 
     def jacobian(
         self,

@@ -57,9 +57,10 @@ class UniqueTableReferenceT(typing.NamedTuple):
 
 # This is used for custom integrals in which the basix tables will computed at run-time
 class ElementTables(typing.NamedTuple):
-    name: str
+    name: str #name of quadrature table
     element: basix.ufl._ElementBase
     element_counter: int
+    element_name: str
     averaged: str
     local_derivatives: tuple[int]
     basix_index: int
@@ -623,8 +624,19 @@ def create_element_deriv_order(element_tables):
 
     return element_deriv_order
 
+def unique_finite_element_names(element_tables):
+    finite_element_names = set()
 
-def build_element_tables(quadrature_rule, entitytype, modified_terminals):
+    # Go through table and determine highest derivative needed from element
+    for e in element_tables.values():
+        name = e.element_name
+        if name not in finite_element_names:
+            finite_element_names.add(name)
+
+    return finite_element_names
+
+
+def build_element_tables(quadrature_rule, entitytype, modified_terminals, finite_element_names):
     # Collect information on each named basis function evaluation for which
     # basix_tabulate needs to be called in tabulate_tensor at run-time.
     analysis = {}
@@ -653,12 +665,13 @@ def build_element_tables(quadrature_rule, entitytype, modified_terminals):
         # Build name for this particular table
         #element = convert_element(element)
         element_number = element_numbers[element]
+        element_name = finite_element_names[element]
 
         name = generate_psi_table_name(quadrature_rule, element_number, avg, entitytype,
                                        local_derivatives, flat_component)
 
         element_tables.append(ElementTables(
-            name, element, element_number, avg, local_derivatives, basix_idx, deriv_order, flat_component))
+            name, element, element_number, element_name, avg, local_derivatives, basix_idx, deriv_order, flat_component))
 
     # Create dictionary which gives the highest derivative for each element
     element_deriv_order = create_element_deriv_order(element_tables)
