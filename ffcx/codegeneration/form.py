@@ -10,6 +10,7 @@
 import logging
 
 from ffcx.codegeneration import form_template
+import ffcx.codegeneration.C.cnodes as L
 
 logger = logging.getLogger("ffcx")
 
@@ -19,8 +20,6 @@ def generator(ir, options):
     logger.info("Generating code for form:")
     logger.info(f"--- rank: {ir.rank}")
     logger.info(f"--- name: {ir.name}")
-
-    import ffcx.codegeneration.C.cnodes as L
 
     d = {}
     d["factory_name"] = ir.name
@@ -67,9 +66,11 @@ def generator(ir, options):
 
     if len(ir.finite_elements) > 0:
         d["finite_elements"] = f"finite_elements_{ir.name}"
-        d["finite_elements_init"] = L.ArrayDecl("ufcx_finite_element*", f"finite_elements_{ir.name}", values=[
-                                                L.AddressOf(L.Symbol(el)) for el in ir.finite_elements],
-                                                sizes=len(ir.finite_elements))
+        d["finite_elements_init"] = L.ArrayDecl("ufcx_finite_element*",
+                                        f"finite_elements_{ir.name}",
+                                        values=[L.AddressOf(L.Symbol(el))
+                                                for el in ir.finite_elements],
+                                        sizes=len(ir.finite_elements))
     else:
         d["finite_elements"] = L.Null()
         d["finite_elements_init"] = ""
@@ -92,12 +93,15 @@ def generator(ir, options):
                 "static ufcx_integral*", f"integrals_{itg_type}_{ir.name}",
                 values=[L.AddressOf(L.Symbol(itg)) for itg in ir.integral_names[itg_type]],
                 sizes=len(ir.integral_names[itg_type]))]
-            cases.append((L.Symbol(itg_type), L.Return(L.Symbol(f"integrals_{itg_type}_{ir.name}"))))
+            cases.append((L.Symbol(itg_type),
+                          L.Return(L.Symbol(f"integrals_{itg_type}_{ir.name}"))))
 
             code_ids += [L.ArrayDecl(
                 "static int", f"integral_ids_{itg_type}_{ir.name}",
-                values=ir.subdomain_ids[itg_type], sizes=len(ir.subdomain_ids[itg_type]))]
-            cases_ids.append((L.Symbol(itg_type), L.Return(L.Symbol(f"integral_ids_{itg_type}_{ir.name}"))))
+                values=ir.subdomain_ids[itg_type],
+                sizes=len(ir.subdomain_ids[itg_type]))]
+            cases_ids.append((L.Symbol(itg_type),
+                              L.Return(L.Symbol(f"integral_ids_{itg_type}_{ir.name}"))))
 
     code += [L.Switch("integral_type", cases, default=L.Return(L.Null()))]
     code_ids += [L.Switch("integral_type", cases_ids, default=L.Return(L.Null()))]

@@ -7,8 +7,8 @@
 
 import logging
 
-import ufl
 import numpy as np
+import ufl
 
 from ffcx.codegeneration.backend import FFCXBackend
 from ffcx.codegeneration.C import integrals_template as ufcx_integrals
@@ -68,11 +68,9 @@ def generator(ir: IntegralIR, options):
 
     finite_element_str = ""
     if len(ir.finite_elements) > 0:
-        finite_element_str = ", ".join(f"&{finite_element}" for finite_element in ir.finite_elements)
+        finite_element_str = ", ".join(f"&{element}" for element in ir.finite_elements)
 
     finite_element_str = "{" + finite_element_str + "}"
-
-    print(finite_element_str)
 
     if ir.integral_type in ufl.custom_integral_types:
       code["custom_tabulate_tensor_float32"] = "NULL"

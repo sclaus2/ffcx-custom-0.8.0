@@ -18,7 +18,6 @@ import ffcx.codegeneration.lnodes as L
 from ffcx.codegeneration import geometry
 from ffcx.codegeneration.definitions import create_dof_index, create_quadrature_index
 from ffcx.codegeneration.optimizer import optimize
-from ffcx.ir.elementtables import piecewise_ttypes
 from ffcx.ir.integral import BlockDataT
 from ffcx.ir.representationutils import QuadratureRule
 
@@ -229,7 +228,6 @@ class IntegralGenerator:
         """
         parts = []
         tables = self.ir.unique_tables
-        table_types = self.ir.unique_table_types
 
         # Define all tables
         table_names = sorted(tables)
@@ -277,7 +275,6 @@ class IntegralGenerator:
 
     def generate_quadrature_loop(self, quadrature_rule: QuadratureRule):
         """Generate quadrature loop with for this quadrature_rule."""
-
         # Generate varying partition
         definitions, intermediates_0 = self.generate_varying_partition(quadrature_rule)
 
@@ -622,7 +619,6 @@ class IntegralGenerator:
 
             decl += "basix_element_tabulate("
             decl += "basix_element_" + str(id) + ", "
-            decl += "el_" + str(id) + ".geometric_dimension" + ", "
             decl += "points, "
             decl += str(self.backend.symbols.custom_num_points()) + ", "
             decl += str(nd) + ", "
@@ -643,7 +639,7 @@ class IntegralGenerator:
             # tabulate tensor at run-time
             brackets = ''.join("[%d]" % table.shape[0])
             brackets += ''.join("[%d]" % table.shape[1])
-            brackets += ''.join("[%s]" % str(self.backend.symbols.custom_num_points()))
+            brackets += ''.join(f"[{self.backend.symbols.custom_num_points()!s}]")
             brackets += ''.join("[%d]" % table.shape[3])
 
             # Declare array of the type e.g. double FE#_C#[1][1][num_points][3];
@@ -658,24 +654,24 @@ class IntegralGenerator:
 
             brackets = []
             if (table.shape[0] > 1):
-                brackets = ''.join("[%s]" % arg_indices[0].name)
+                brackets = ''.join(f"[{arg_indices[0].name}]")
             else:
                 brackets = ''.join("[0]")
 
             if (table.shape[1] > 1):
-                brackets += ''.join("[%s]" % arg_indices[1].name)
+                brackets += ''.join(f"[{arg_indices[1].name}]")
             else:
                 brackets += ''.join("[0]")
 
-            brackets += ''.join("[%s]" % iq.name)
-            brackets += ''.join("[%s]" % arg_indices[2].name)
+            brackets += ''.join(f"[{iq.name}]")
+            brackets += ''.join(f"[{arg_indices[2].name}]")
             body = e.name + brackets + " = "
 
             # Element tables gives metadata associated to name: (id, basix_index,fc)
             # table dimensions: [derivatives (basix::indexing)][point index][basis function index][function component]
             brackets = ''.join("[%d]" % e.basix_index)
-            brackets += ''.join("[%s]" % iq.name)
-            brackets += ''.join("[%s]" % arg_indices[2].name)
+            brackets += ''.join(f"[{iq.name}]")
+            brackets += ''.join(f"[{arg_indices[2].name}]")
             brackets += ''.join("[%d]" % e.fc)
             body += "table_" + str(id) + brackets + ";"
 

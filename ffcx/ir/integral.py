@@ -20,7 +20,12 @@ from ffcx.ir.analysis.factorization import compute_argument_factorization
 from ffcx.ir.analysis.graph import build_scalar_graph
 from ffcx.ir.analysis.modified_terminals import analyse_modified_terminal, is_modified_terminal
 from ffcx.ir.analysis.visualise import visualise_graph
-from ffcx.ir.elementtables import UniqueTableReferenceT, build_optimized_tables, build_element_tables, unique_finite_element_names
+from ffcx.ir.elementtables import (
+    UniqueTableReferenceT,
+    build_element_tables,
+    build_optimized_tables,
+    unique_finite_element_names,
+)
 
 logger = logging.getLogger("ffcx")
 
