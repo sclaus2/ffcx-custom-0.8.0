@@ -60,7 +60,7 @@ class ElementTables(typing.NamedTuple):
     name: str #name of quadrature table
     element: basix.ufl._ElementBase
     element_counter: int
-    element_name: str
+    component_element_name: str #name of component element
     averaged: str
     local_derivatives: tuple[int]
     basix_index: int
@@ -613,7 +613,7 @@ def create_element_deriv_order(element_tables):
 
     # Go through table and determine highest derivative needed from element
     for e in element_tables:
-        element = e.element
+        element = e.component_element_name
         deriv_order = e.deriv_order
         if element in element_deriv_order.keys():
             deriv_order_exist = element_deriv_order[element]
@@ -625,13 +625,13 @@ def create_element_deriv_order(element_tables):
     return element_deriv_order
 
 def unique_finite_element_names(element_tables):
-    finite_element_names = set()
+    finite_element_names = []
 
     # Go through table and determine highest derivative needed from element
     for e in element_tables.values():
-        name = e.element_name
+        name = e.component_element_name
         if name not in finite_element_names:
-            finite_element_names.add(name)
+            finite_element_names.append(name)
 
     return finite_element_names
 
@@ -663,15 +663,22 @@ def build_element_tables(quadrature_rule, entitytype, modified_terminals, finite
         basix_idx = basix_index(local_derivatives)
 
         # Build name for this particular table
-        #element = convert_element(element)
         element_number = element_numbers[element]
-        element_name = finite_element_names[element]
+        #element_name = finite_element_names[element]
 
         name = generate_psi_table_name(quadrature_rule, element_number, avg, entitytype,
                                        local_derivatives, flat_component)
 
+        component_element, _, _ = element.get_component_element(flat_component)
+        if isinstance(component_element, basix.ufl._ComponentElement):
+            component_element = component_element._element
+
+        #update number and name with appropriate component element
+        element_number = element_numbers[component_element]
+        component_element_name = finite_element_names[component_element]
+
         element_tables.append(ElementTables(
-            name, element, element_number, element_name, avg, local_derivatives, basix_idx, deriv_order, flat_component))
+            name, element, element_number, component_element_name, avg, local_derivatives, basix_idx, deriv_order, flat_component))
 
     # Create dictionary which gives the highest derivative for each element
     element_deriv_order = create_element_deriv_order(element_tables)

@@ -140,6 +140,7 @@ class IntegralIR(typing.NamedTuple):
     element_deriv_order: dict[basix.ufl._ElementBase, int]
     element_numbers: dict[int,basix.ufl._ElementBase]
     finite_elements: list[str]
+    geometric_dimension: int
     tensor_shape: list[int]
     coefficient_numbering: dict[ufl.Coefficient, int]
     coefficient_offsets: dict[ufl.Coefficient, int]
@@ -169,6 +170,7 @@ class ExpressionIR(typing.NamedTuple):
     element_deriv_order: dict[basix.ufl._ElementBase, int]
     element_numbers: dict[int,basix.ufl._ElementBase]
     finite_elements: list[str]
+    geometric_dimension: int
     tensor_shape: list[int]
     expression_shape: list[int]
     original_constant_offsets: dict[ufl.Constant, int]
@@ -432,6 +434,7 @@ def _compute_integral_ir(
             "entitytype": entitytype,
             "enabled_coefficients": itg_data.enabled_coefficients,
             "coordinate_element": finite_element_names[itg_data.domain.ufl_coordinate_element()],
+            "geometric_dimension": form_data.geometric_dimension,
         }
 
         # Get element space dimensions
