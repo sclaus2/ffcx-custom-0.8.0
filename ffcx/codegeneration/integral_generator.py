@@ -579,29 +579,27 @@ class IntegralGenerator:
     def generate_custom_integral_tables(self, element_tables, tables):
         element_def_parts = []
 
-        num_fe = len(self.ir.finite_elements)
-        decl = "ufcx_finite_element** elements[" + str(num_fe) + "]; \n"
-        for element in self.ir.finite_elements:
-            decl += "elements[" + str(self.ir.finite_elements.index(element)) + "]="
-            decl += "&" + element + "; \n"
+        #todo: remove self.ir.finite_elements
+        #todo: make sure that each element is only genererated once
+        num_fe = len(element_tables)
+        decl = "basix_element** elements[" + str(num_fe) + "]; \n"
 
-        decl += "basix_element** basix_elements = basix_elements_from_ufcx(elements," + str(num_fe)+");\n"
         element_def_parts += [L.LiteralString(decl)]
 
-        # for id, e in element_tables.items():
-        #     component_element, _, _ = e.element.get_component_element(e.fc)
-        #     decl = "// Represented element component is " + e.component_element_name + "\n"
-        #     decl += "// index in finite element list "+ str(self.ir.finite_elements.index(e.component_element_name)) + "\n"
-        #     decl += "basix_element* basix_element_" + str(id) + " = basix_element_create("
-        #     decl += str(int(component_element.element_family)) + ", "
-        #     decl += str(int(component_element.cell_type)) + ", "
-        #     decl += str(component_element.degree) + ", "
-        #     decl += str(int(component_element.lagrange_variant)) + ", "
-        #     decl += str(int(component_element.dpc_variant)) + ", "
-        #     decl+= "true" if component_element.discontinuous else "false"
-        #     decl += ");\n"
+        for id, e in element_tables.items():
+            component_element, _, _ = e.element.get_component_element(e.fc)
+            decl = "// Represented element component is " + e.component_element_name + "\n"
+            decl += "// index in finite element list "+ str(self.ir.finite_elements.index(e.component_element_name)) + "\n"
+            decl += "elements[" + str(id) + "] = basix_element_create("
+            decl += str(int(component_element.element_family)) + ", "
+            decl += str(int(component_element.cell_type)) + ", "
+            decl += str(component_element.degree) + ", "
+            decl += str(int(component_element.lagrange_variant)) + ", "
+            decl += str(int(component_element.dpc_variant)) + ", "
+            decl+= "true" if component_element.discontinuous else "false"
+            decl += ");\n"
 
-        #     print(decl)
+            element_def_parts += [L.LiteralString(decl)]
 
         #     element_def_parts += [L.LiteralString(decl)] #[L.VerbatimStatement(decl)]
         #comment = "FIXME: the elements should be generated in another code block for efficiency"
@@ -612,14 +610,14 @@ class IntegralGenerator:
 
         decl = "int gdim = " + str(self.ir.geometric_dimension) + ";\n"
 
-        for element in self.ir.finite_elements:
-            nd = self.ir.element_deriv_order[element]
-            id = self.ir.finite_elements.index(element)
+        for id, e in element_tables.items():
+            nd = e.deriv_order #self.ir.element_deriv_order[element]
+            #id = self.ir.finite_elements.index(element)
 
             cshape_str = "shape_" + str(id)
             decl += "int " + cshape_str + "[4];\n"
             decl += "basix_element_tabulate_shape("
-            decl += "basix_elements[" + str(id) + "], "
+            decl += "elements[" + str(id) + "], "
             decl += str(self.backend.symbols.custom_num_points()) + ", "
             decl += str(nd) + ", "
             decl += cshape_str + ");\n"
@@ -633,7 +631,7 @@ class IntegralGenerator:
             decl += cshape_str + "[2]][" + cshape_str + "[3]];\n"
 
             decl += "basix_element_tabulate("
-            decl += "basix_elements[" + str(id) + "], "
+            decl += "elements[" + str(id) + "], "
             decl += "gdim, points, "
             decl += str(self.backend.symbols.custom_num_points()) + ", "
             decl += str(nd) + ", "
