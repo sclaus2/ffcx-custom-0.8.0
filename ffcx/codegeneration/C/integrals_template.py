@@ -64,8 +64,6 @@ ufcx_integral {factory_name} =
   .custom_tabulate_tensor_complex128 = {custom_tabulate_tensor_complex128},
   .needs_facet_permutations = {needs_facet_permutations},
   .coordinate_element = {coordinate_element},
-  .num_finite_elements = {num_finite_elements},
-  .finite_elements[{num_finite_elements}] = {finite_elements},
 }};
 
 // End of code for integral {factory_name}

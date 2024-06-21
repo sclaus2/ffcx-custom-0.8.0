@@ -582,7 +582,9 @@ class IntegralGenerator:
         #todo: remove self.ir.finite_elements
         #todo: make sure that each element is only genererated once
         num_fe = len(element_tables)
-        decl = "basix_element** elements[" + str(num_fe) + "]; \n"
+        decl = ""
+        if(num_fe>0):
+          decl += "basix_element* elements[" + str(num_fe) + "]; \n"
 
         element_def_parts += [L.LiteralString(decl)]
 
@@ -637,7 +639,9 @@ class IntegralGenerator:
             decl += str(nd) + ", "
             decl += "(double *) table_"+ str(id) + ", table_size_" + str(id) + ");\n"
 
-        decl += "basix_elements_destroy(basix_elements," + str(num_fe) + ");\n"
+        for i in range(0,len(element_tables)):
+          decl += "basix_element_destroy(elements[" + str(i) + "]);\n"
+
         tabulate_parts += [L.LiteralString(decl)] #[L.StatementList(decl)] #[L.VerbatimStatement(decl)]
 
         #tabulate_parts = L.commented_code_list(tabulate_parts,
