@@ -32,7 +32,7 @@ def generator(options):
     if np.issubdtype(options["scalar_type"], np.complexfloating):
         extra_c_includes += ["complex.h"]
     if options["has_custom_integral"]:
-        extra_c_includes += ["cwrapper.h"]
+        extra_c_includes += ["cutfemx/basix_wrapper/cwrapper.h"]
     d["extra_c_includes"] = "\n".join(f"#include <{header}>" for header in extra_c_includes)
 
     # Format declaration code
